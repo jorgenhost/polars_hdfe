@@ -147,7 +147,7 @@ if __name__ == "__main__":
     # 1. High Intra-Cluster Correlation (Good for testing Cluster SEs)
     # Low number of clusters (50) makes clustering critical.
     generate_fe_data(
-    n_obs=15_000_000,
+    n_obs=20_000_000,
     n_firms=10_000,   # High dimensionality
     n_workers=2_000,  # High dimensionality
     n_cities=500,
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     )
     # 3. ULTRA HDFE
     generate_fe_data(
-        n_obs=15_000_000,
+        n_obs=20_000_000,
         n_firms=10_000,
         n_workers=2_000,
         n_cities=500,
