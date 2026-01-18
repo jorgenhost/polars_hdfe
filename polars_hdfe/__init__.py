@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 LIB = Path(__file__).parent
 
-@pl.api.register_expr_namespace("least_squares") 
+@pl.api.register_expr_namespace("hdfe_least_squares") 
 class LeastSquaresNamespace:
     def __init__(self, expr: pl.Expr):
         self._expr = expr

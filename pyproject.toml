@@ -15,8 +15,10 @@ dependencies = [
     "jupyter>=1.1.1",
     "maturin>=1.11.5",
     "patchelf>=0.17.2.4",
+    "patsy>=1.0.2",
     "polars>=1.8.2",
     "polars-ds>=0.5.3",
+    "polars-ols>=0.3.5",
 ]
 
 [tool.maturin]
