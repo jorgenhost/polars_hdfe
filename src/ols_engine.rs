@@ -18,26 +18,42 @@ pub fn solve_ols(y: &[f64], x: &[Vec<f64>]) -> Result<OlsResult, String> {
         return Err("Insufficient degrees of freedom".to_string());
     }
 
-    let mut xtx = Mat::<f64>::zeros(k, k);
-    let mut xty = Mat::<f64>::zeros(k, 1);
-
-    for i in 0..k {
-        let dot_y: f64 = x[i].iter().zip(y.iter()).map(|(a, b)| a * b).sum();
-        xty[(i, 0)] = dot_y;
-
-        for j in i..k {
-            let dot_x: f64 = x[i].iter().zip(x[j].iter()).map(|(a, b)| a * b).sum();
-            xtx[(i, j)] = dot_x;
-            if i != j { xtx[(j, i)] = dot_x; }
+    // --- Build X as an faer::Mat of shape (n, k) from column vectors x[j][row] ---
+    // Assume x[j].len() == n for all j
+    let mut x_mat = Mat::<f64>::zeros(n, k);
+    for (j, col) in x.iter().enumerate() {
+        debug_assert_eq!(col.len(), n);
+        for (row, &val) in col.iter().enumerate() {
+            // faer is row-major: (row, col)
+            x_mat[(row, j)] = val;
         }
     }
 
-    let llt = xtx.llt(faer::Side::Lower)
+    // --- Build y as an faer column vector (n, 1) ---
+    let mut y_vec = Mat::<f64>::zeros(n, 1);
+    for (row, &val) in y.iter().enumerate() {
+        y_vec[(row, 0)] = val;
+    }
+
+    // --- Compute xtx = X^T * X and xty = X^T * y using faer operations ---
+    // X has shape (n, k), so:
+    // X^T has shape (k, n)
+    // X^T * X has shape (k, k)
+    // X^T * y has shape (k, 1)
+    let x_t = x_mat.transpose(); // (k, n)
+
+    let xtx = &x_t * &x_mat;     // (k, k)
+    let xty = &x_t * &y_vec;     // (k, 1)
+
+    // --- Solve (X^T X) beta = X^T y via Cholesky ---
+    let llt = xtx
+        .llt(faer::Side::Lower)
         .map_err(|_| "Matrix is singular (collinear columns)".to_string())?;
-    
-    let beta_mat = llt.solve(&xty);
+
+    let beta_mat = llt.solve(&xty); // (k, 1)
     let betas: Vec<f64> = (0..k).map(|i| beta_mat[(i, 0)]).collect();
 
+    // --- Compute residuals, RSS, TSS, etc., like you already do ---
     let mut rss = 0.0;
     let mut tss = 0.0;
     let y_mean = y.iter().sum::<f64>() / n as f64;
@@ -52,9 +68,10 @@ pub fn solve_ols(y: &[f64], x: &[Vec<f64>]) -> Result<OlsResult, String> {
         tss += (y[row_idx] - y_mean).powi(2);
     }
 
-    let _r2 = 1.0 - (rss/tss);
-    let sigma2 = rss/(n-k) as f64;
+    let _r2 = 1.0 - (rss / tss);
+    let sigma2 = rss / (n - k) as f64;
 
+    // Variances: Var(beta) = sigma^2 * diag((X^T X)^{-1})
     let identity = Mat::<f64>::identity(k, k);
     let inv_xtx = llt.solve(&identity);
 
@@ -66,15 +83,20 @@ pub fn solve_ols(y: &[f64], x: &[Vec<f64>]) -> Result<OlsResult, String> {
 
     for i in 0..k {
         let var_beta = sigma2 * inv_xtx[(i, i)];
-        let se  = var_beta.sqrt();
+        let se = var_beta.sqrt();
         let beta = betas[i];
-        let t = beta/se;
+        let t = beta / se;
         let p = 2.0 * (1.0 - t_dist.cdf(t.abs()));
-        
+
         std_errors.push(se);
         t_stats.push(t);
         p_values.push(p);
     }
 
-    Ok(OlsResult { betas, std_errors, t_stats, p_values})
+    Ok(OlsResult {
+        betas,
+        std_errors,
+        t_stats,
+        p_values,
+    })
 }
