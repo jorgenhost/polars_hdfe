@@ -1,0 +1,9 @@
+
+# windows 11
+fit() called: n=5000000, k=5
+  XtX/Xty: 71.4609ms
+  Cholesky: 1.0813ms
+  Solve beta: 110.7µs
+  RSS/TSS: 56.4557ms
+  Invert XtX: 49.8µs
+  TOTAL fit(): 131.5266m
