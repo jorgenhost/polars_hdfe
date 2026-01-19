@@ -1,9 +1,8 @@
 import polars_ds as pds
 import polars as pl
 import polars.selectors as cs
-import os
 from pathlib import Path
-
+import os
 TEST_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = TEST_DIR.parent
 DATA_DIR = f'{PROJECT_ROOT}/data'
@@ -138,7 +137,8 @@ def generate_fe_data(
 
     # 7. Execution
     # -------------------------------------------------------------------------
-    lf.sink_parquet(filename, mkdir=True)
+    # TEMP: USE FLOAT64
+    lf.with_columns(pl.all().cast(pl.Float64)).sink_parquet(filename, mkdir=True)
     print(f"Saved to {filename}")
 
 # --- RUN CONFIGURATION ---
