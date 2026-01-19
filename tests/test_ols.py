@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 import polars as pl
 import polars.selectors as cs
-import polars_hdfe
+import polars_hdfe as plf
 import polars_ols as pls
+import pyfixest as pf
 import time
 
 TEST_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -40,6 +41,22 @@ def test_ols_basic():
 
 
 test_ols_basic()
+
+def test_ols_basic_pyfixest():
+    start = time.perf_counter()
+    mod=pf.feols(
+        fml = "log_wage ~ experience + education + age + age_sq",
+        data = df_fe,
+        lean=True,
+        store_data=False,
+        copy_data=False
+    )
+    # Inspect output
+    print(mod.summary())
+    elapsed = time.perf_counter() - start
+    print(f"test_ols_basic_pyfixest: {elapsed:.3f} s")
+
+test_ols_basic_pyfixest()
 
 def test_ols_basic_pls():
     start = time.perf_counter()
@@ -87,3 +104,19 @@ def test_ols_uhdfe_pls():
     print(f"test_ols_uhdfe_pls: {elapsed:.3f} s")
 
 test_ols_uhdfe_pls()
+
+def test_ols_uhdfe_pyfixest():
+    start = time.perf_counter()
+    mod=pf.feols(
+        fml = "log_wage ~ experience + education + age + age_sq",
+        data = df_uhdfe,
+        lean=True,
+        store_data=False,
+        copy_data=False
+    )
+    # Inspect output
+    print(mod.summary())
+    elapsed = time.perf_counter() - start
+    print(f"test_ols_uhdfe_pyfixest: {elapsed:.3f} s")
+
+test_ols_uhdfe_pyfixest()
