@@ -33,7 +33,7 @@ impl FittedOls {
     }
 }
 
-/// Thin wrapper type, like `OlsRegressor` in polars-statistics.
+/// Thin wrapper type
 pub struct OlsRegressor {
     with_intercept: bool,
 }
@@ -193,7 +193,6 @@ impl OlsRegressorBuilder {
     }
 }
 
-/// Helper like `build_xy_data` in polars-statistics.
 /// Here we assume:
 ///   - inputs[y_idx] is y,
 ///   - inputs[x_start..] are predictors,
