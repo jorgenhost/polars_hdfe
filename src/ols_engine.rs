@@ -252,6 +252,7 @@ pub fn build_xy_data(
     Ok((x_mat, y_mat, names))
 }
 
+// TODO: Why is this quicker than before?
 fn compute_xtx_xty(x: &Mat<f64>, y: &Mat<f64>) -> (Mat<f64>, Mat<f64>) {
     let n = x.nrows();
     let k = x.ncols();
