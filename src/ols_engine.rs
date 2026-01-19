@@ -2,6 +2,7 @@ use faer::prelude::*;
 use faer::Mat;
 use polars::prelude::*;
 use statrs::distribution::{ContinuousCDF, StudentsT};
+use std::time::Instant;
 
 #[derive(Debug)]
 pub struct OlsResult {
@@ -32,7 +33,7 @@ impl FittedOls {
     }
 }
 
-/// Thin wrapper type, like `OlsRegressor` in polars-statistics.
+/// Thin wrapper type
 pub struct OlsRegressor {
     with_intercept: bool,
 }
@@ -49,30 +50,28 @@ impl OlsRegressor {
     }
 
     pub fn fit(&self, x: &Mat<f64>, y: &Mat<f64>) -> Result<FittedOls, String> {
+        let t_total = Instant::now();
+        
         let n = x.nrows();
         let k = x.ncols();
+        println!("fit() called: n={}, k={}", n, k);
 
-        if y.ncols() != 1 || y.nrows() != n {
-            return Err("Shape mismatch between X and y".to_string());
-        }
-        if n <= k {
-            return Err("Insufficient degrees of freedom".to_string());
-        }
+        // ... validation ...
 
-        // --- Solve (XᵀX) β = Xᵀy via Cholesky ---
+        let t0 = Instant::now();
+        let (xtx, xty) = compute_xtx_xty(x, y);
+        println!("  XtX/Xty: {:?}", t0.elapsed());
 
-        // XᵀX and Xᵀy
-        let x_t = x.transpose(); // (k, n)
-        let xtx = &x_t * x;      // (k, k)
-        let xty = &x_t * y;      // (k, 1)
-
+        let t1 = Instant::now();
         let llt = xtx
             .llt(faer::Side::Lower)
             .map_err(|_| "Matrix is singular (collinear columns)".to_string())?;
+        println!("  Cholesky: {:?}", t1.elapsed());
 
-        let beta_mat = llt.solve(&xty); // (k, 1)
+        let t2 = Instant::now();
+        let beta_mat = llt.solve(&xty);
         let betas_full: Vec<f64> = (0..k).map(|i| beta_mat[(i, 0)]).collect();
-
+        println!("  Solve beta: {:?}", t2.elapsed());
         // Treat last column as intercept if `with_intercept == true`
         let (_intercept, betas) = if self.with_intercept && k > 0 {
             let _intercept = *betas_full.last().unwrap();
@@ -86,6 +85,8 @@ impl OlsRegressor {
 
         // --- Residuals, RSS, TSS, R², adj-R² ---
 
+        let t3 = Instant::now();
+        // RSS/TSS loop
         let mut rss = 0.0;
         let mut tss = 0.0;
         let mut y_mean = 0.0;
@@ -101,10 +102,10 @@ impl OlsRegressor {
             }
             let resid = y[(row, 0)] - y_hat;
             rss += resid * resid;
-
             let diff = y[(row, 0)] - y_mean;
             tss += diff * diff;
         }
+        println!("  RSS/TSS: {:?}", t3.elapsed());
 
         let _r_squared = if tss > 0.0 { 1.0 - rss / tss } else { f64::NAN };
         let _dof_model = effective_k as f64;
@@ -123,11 +124,11 @@ impl OlsRegressor {
 
         // --- Standard errors, t-stats, p-values ---
 
+        let t4 = Instant::now();
         let sigma2 = rss / (n - k) as f64;
-
-        // Var(β) = σ² · diag((XᵀX)⁻¹)
         let identity = Mat::<f64>::identity(k, k);
         let inv_xtx = llt.solve(&identity);
+        println!("  Invert XtX: {:?}", t4.elapsed());
 
         let mut std_errors_full = Vec::with_capacity(k);
         let mut t_stats_full = Vec::with_capacity(k);
@@ -147,6 +148,8 @@ impl OlsRegressor {
             t_stats_full.push(t);
             p_values_full.push(p);
         }
+
+        println!("  TOTAL fit(): {:?}", t_total.elapsed());
 
         // Drop intercept row from inference vectors if with_intercept.
         let (std_errors, t_stats, p_values) = if self.with_intercept && k > 0 {
@@ -190,7 +193,6 @@ impl OlsRegressorBuilder {
     }
 }
 
-/// Helper like `build_xy_data` in polars-statistics.
 /// Here we assume:
 ///   - inputs[y_idx] is y,
 ///   - inputs[x_start..] are predictors,
@@ -248,4 +250,33 @@ pub fn build_xy_data(
     }
 
     Ok((x_mat, y_mat, names))
+}
+
+// TODO: Why is this quicker than before?
+fn compute_xtx_xty(x: &Mat<f64>, y: &Mat<f64>) -> (Mat<f64>, Mat<f64>) {
+    let n = x.nrows();
+    let k = x.ncols();
+    
+    let mut xtx = Mat::<f64>::zeros(k, k);
+    let mut xty = Mat::<f64>::zeros(k, 1);
+    
+    for row in 0..n {
+        let y_val = y[(row, 0)];
+        for i in 0..k {
+            let xi = x[(row, i)];
+            xty[(i, 0)] += xi * y_val;
+            for j in 0..=i {
+                xtx[(i, j)] += xi * x[(row, j)];
+            }
+        }
+    }
+    
+    // Mirror lower triangle to upper
+    for i in 0..k {
+        for j in (i + 1)..k {
+            xtx[(i, j)] = xtx[(j, i)];
+        }
+    }
+    
+    (xtx, xty)
 }
