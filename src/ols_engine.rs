@@ -210,16 +210,20 @@ pub fn build_xy_data(
     let y_ca = y_f.f64().unwrap();
     let n = y_ca.len();
 
+    let t_y = Instant::now();
     let mut y_mat = Mat::<f64>::zeros(n, 1);
     for (row, val) in y_ca.into_no_null_iter().enumerate() {
         y_mat[(row, 0)] = val;
     }
+    println!("  y ingestion: {:?}", t_y.elapsed());
+    
 
     // X: (n, k), each column from one Series, scalar columns broadcast
     let k = x_series_list.len();
     let mut x_mat = Mat::<f64>::zeros(n, k);
     let mut names = Vec::with_capacity(k);
 
+    let t_x = Instant::now();
     for (j, s) in x_series_list.iter().enumerate() {
         let s_f = s.cast(&DataType::Float64)?;
         let ca = s_f.f64().unwrap();
@@ -248,6 +252,7 @@ pub fn build_xy_data(
 
         names.push(s.name().to_string());
     }
+    println!("  X ingestion: {:?}", t_x.elapsed());
 
     Ok((x_mat, y_mat, names))
 }
