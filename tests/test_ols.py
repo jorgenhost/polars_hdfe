@@ -6,6 +6,8 @@ import polars_hdfe
 import polars_ols as pls
 import pyfixest as pf
 import time
+import tracemalloc
+import gc
 
 TEST_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = TEST_DIR.parent
@@ -21,15 +23,27 @@ print("VERSION:", pl.__version__)
 print(pl.build_info())
 print("Threads:", pl.thread_pool_size())
 
+def start_benchmark():
+    print("***" * 20)
+    tracemalloc.start()
+    start_time = time.perf_counter()
+    return start_time
+
+def end_benchmark(label: str, start_time: float):
+    elapsed = time.perf_counter() - start_time
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    print("===" * 20)
+    print(f"{label}: {elapsed:.3f} s")
+    print(f"{label} peak memory (tracemalloc): {peak / 1024**2:.2f} MiB")
+    print("===" * 20)
+
 # TODO: Allow for more than just Float64
 lf_fe = pl.scan_parquet(FE_DATA)
 df_fe = lf_fe.collect()
 
 def test_ols_basic():
-    print("***"*20)
-    print('START: test_ols_basic')
-    print("***"*20)
-    start = time.perf_counter()
+    start = start_benchmark()
 
     result = df_fe.select(
         pl.col("log_wage").hdfe_least_squares.ols(
@@ -42,18 +56,11 @@ def test_ols_basic():
         ).alias("ols_result")
     )
     # Inspect output
+    end_benchmark("test_ols_basic", start)
     print(result.unnest("ols_result"))
-    elapsed = time.perf_counter() - start
-    print("==="*20)
-    print(f"test_ols_basic: {elapsed:.3f} s")
-    print("==="*20)
 
 def test_ols_basic_lazy():
-    print("***"*20)
-    print('START: test_ols_basic_lazy')
-    print("***"*20)
-
-    start = time.perf_counter()
+    start = start_benchmark()
 
     result = lf_fe.select(
         pl.col("log_wage").hdfe_least_squares.ols(
@@ -65,19 +72,13 @@ def test_ols_basic_lazy():
             ],
         ).alias("ols_result")
     ).collect()
+    end_benchmark("test_ols_basic_lazy", start)
     # Inspect output
     print(result.unnest("ols_result"))
-    elapsed = time.perf_counter() - start
-    print("==="*20)
-    print(f"test_ols_basic_lazy: {elapsed:.3f} s")
-    print("==="*20)
 
 
 def test_ols_basic_pyfixest():
-    print("***"*20)
-    print('START: test_ols_basic_pyfixest')
-    print("***"*20)
-    start = time.perf_counter()
+    start = start_benchmark()
     mod=pf.feols(
         fml = "log_wage ~ experience + education + age + age_sq",
         data = df_fe,
@@ -85,27 +86,19 @@ def test_ols_basic_pyfixest():
         store_data=False,
         copy_data=False
     )
+    end_benchmark("test_ols_basic_pyfixest", start)
     # Inspect output
     print(mod.summary())
-    elapsed = time.perf_counter() - start
-    print("==="*20)
-    print(f"test_ols_basic_pyfixest: {elapsed:.3f} s")
-    print("==="*20)
-
+    
 
 def test_ols_basic_pls():
-    print("***"*20)
-    print('START: test_ols_basic_pls')
-    print("***"*20)
-    start = time.perf_counter()
+    start = start_benchmark()
     coefficients = df_fe.select(pl.col("log_wage").least_squares.from_formula("experience + education + age + age_sq", mode="coefficients")
                          .alias("coefficients"))
+
+    end_benchmark("test_ols_basic_pls", start)
     # Inspect output
     print(coefficients)
-    elapsed = time.perf_counter() - start
-    print("==="*20)
-    print(f"test_ols_basic_pls: {elapsed:.3f} s")
-    print("==="*20)
 
 test_ols_basic()
 test_ols_basic_lazy()
@@ -113,16 +106,12 @@ test_ols_basic_pyfixest()
 test_ols_basic_pls()
 
 del df_fe
-
+gc.collect()
 lf_uhdfe = pl.scan_parquet(UHDFE_DATA)
 df_uhdfe = lf_uhdfe.collect()
 
 def test_ols_uhdfe():
-    print("***"*20)
-    print('START: test_ols_uhdfe')
-    print("***"*20)
-    start = time.perf_counter()
-
+    start = start_benchmark()
     result = df_uhdfe.select(
         pl.col("log_wage").hdfe_least_squares.ols(
             features=[
@@ -133,19 +122,14 @@ def test_ols_uhdfe():
             ],
         ).alias("ols_result")
     )
+
+    end_benchmark("test_ols_uhdfe", start)
+
     # Inspect output
     print(result.unnest("ols_result"))
-    elapsed = time.perf_counter() - start
-    print("==="*20)
-    print(f"test_ols_uhdfe: {elapsed:.3f} s")
-    print("==="*20)
-
+    
 def test_ols_uhdfe_lazy():
-    print("***"*20)
-    print('START: test_ols_uhdfe_lazy')
-    print("==="*20)
-
-    start = time.perf_counter()
+    start = start_benchmark()
 
     result = lf_uhdfe.select(
         pl.col("log_wage").hdfe_least_squares.ols(
@@ -157,30 +141,22 @@ def test_ols_uhdfe_lazy():
             ],
         ).alias("ols_result")
     ).collect()
+
+    end_benchmark("test_ols_uhdfe_lazy", start)
+
     # Inspect output
     print(result.unnest("ols_result"))
-    elapsed = time.perf_counter() - start
-    print("==="*20)
-    print(f"test_ols_uhdfe_lazy: {elapsed:.3f} s")
-    print("==="*20)
 
 def test_ols_uhdfe_pls():
-    start = time.perf_counter()
+    start = start_benchmark()
     coefficients = df_uhdfe.select(pl.col("log_wage").least_squares.from_formula("experience + education + age + age_sq", mode="coefficients")
                          .alias("coefficients"))
     # Inspect output
     print(coefficients)
-    elapsed = time.perf_counter() - start
-    print("==="*20)
-    print(f"test_ols_uhdfe_pls: {elapsed:.3f} s")
-    print("==="*20)
-
+    end_benchmark("test_ols_uhdfe_pls", start)
 
 def test_ols_uhdfe_pyfixest():
-    print("***"*20)
-    print('START: test_ols_uhdfe_pyfixest')
-    print("==="*20)
-    start = time.perf_counter()
+    start = start_benchmark()
     mod=pf.feols(
         fml = "log_wage ~ experience + education + age + age_sq",
         data = df_uhdfe,
@@ -188,12 +164,11 @@ def test_ols_uhdfe_pyfixest():
         store_data=False,
         copy_data=False
     )
+
+    end_benchmark("test_ols_uhdfe_pyfixest", start)
+
     # Inspect output
     print(mod.summary())
-    elapsed = time.perf_counter() - start
-    print("==="*20)
-    print(f"test_ols_uhdfe_pyfixest: {elapsed:.3f} s")
-    print("==="*20)
 
 test_ols_uhdfe()
 test_ols_uhdfe_lazy()
