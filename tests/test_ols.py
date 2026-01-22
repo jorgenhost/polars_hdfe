@@ -36,7 +36,7 @@ def end_benchmark(label: str, start_time: float):
     print("===" * 20)
     print(f"{label}: {elapsed:.3f} s")
     print(f"{label} peak memory (tracemalloc): {peak / 1024**2:.2f} MiB")
-    print("===" * 20)
+    print("===" * 20, '\n\n')
 
 # TODO: Allow for more than just Float64
 lf_fe = pl.scan_parquet(FE_DATA)
@@ -89,7 +89,7 @@ def test_ols_basic_pyfixest():
     end_benchmark("test_ols_basic_pyfixest", start)
     # Inspect output
     print(mod.summary())
-    
+
 
 def test_ols_basic_pls():
     start = start_benchmark()
@@ -127,7 +127,7 @@ def test_ols_uhdfe():
 
     # Inspect output
     print(result.unnest("ols_result"))
-    
+
 def test_ols_uhdfe_lazy():
     start = start_benchmark()
 
