@@ -102,7 +102,7 @@ def test_ols_basic_pls():
 
 test_ols_basic()
 test_ols_basic_lazy()
-test_ols_basic_pyfixest()
+# test_ols_basic_pyfixest() # SLOW
 test_ols_basic_pls()
 
 del df_fe

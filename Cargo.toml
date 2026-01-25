@@ -16,3 +16,5 @@ polars-arrow = { version = "0.52.0", default-features = false }
 faer = "0.23.2"
 statrs = "0.18.0"
 
+[features]
+timing = []
