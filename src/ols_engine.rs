@@ -89,7 +89,10 @@ impl OlsRegressor {
         let k = x.ncols();
 
         #[cfg(feature = "timing")]
-        log_timing("fit() called", std::time::Duration::from_secs_f64(0.0)); // marker
+        println!("fit() called"); // marker
+
+        #[cfg(feature = "timing")]
+        println!("faer parallelism: {:?}", faer::get_global_parallelism());
 
         if k == 0 {
             return Err("Design matrix has zero columns (k = 0)".to_string());
@@ -289,11 +292,27 @@ pub fn build_xy_data(
 }
 
 fn compute_xtx_xty(x: &Mat<f64>, y: &Mat<f64>) -> (Mat<f64>, Mat<f64>) {
+    #[cfg(feature = "timing")]
+    let t0 = Instant::now();
     let xt = x.transpose();
+    #[cfg(feature = "timing")]
+    log_timing("    transpose", t0.elapsed());
+
+    #[cfg(feature = "timing")]
+    let t1 = Instant::now();
     let xtx = &xt * x;
+    #[cfg(feature = "timing")]
+    log_timing("    xt * x", t1.elapsed());
+
+    #[cfg(feature = "timing")]
+    let t2 = Instant::now();
     let xty = &xt * y;
+    #[cfg(feature = "timing")]
+    log_timing("    xt * y", t2.elapsed());
+
     (xtx, xty)
 }
+
 
 fn rss_tss(x: &Mat<f64>, y: &Mat<f64>, betas_full: &[f64]) -> (f64, f64) {
     let n = x.nrows();

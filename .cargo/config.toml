@@ -1,0 +1,4 @@
+[build]
+# Treat all warnings as errors, and optimize for the local CPU by default.
+# This is great for dev machines.
+rustflags = ["-Dwarnings", "-C", "target-cpu=native"]

@@ -7,6 +7,9 @@ use pyo3::prelude::*;
 use pyo3_polars::derive::polars_expr;
 use pyo3_polars::PolarsAllocator;
 
+#[cfg(all(target_arch = "x86_64", not(target_feature = "avx2")))]
+compile_error!("AVX2 is NOT enabled! Check your config.toml location.");
+
 #[pymodule]
 fn _internal(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

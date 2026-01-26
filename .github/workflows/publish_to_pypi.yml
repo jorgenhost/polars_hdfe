@@ -8,6 +8,10 @@
 # - removed musllinux
 # - have separate linux-just-test and linux-min-versions-just-test jobs
 # - add the `RUSTFLAGS: "-Dwarnings"` env variable
+#
+# Additional differences for CPU tuning:
+# - Local builds use target-cpu=native via .cargo/config.toml
+# - CI wheel builds override RUSTFLAGS to use a portable baseline (x86-64-v3)
 
 
 name: CI
@@ -25,6 +29,7 @@ on:
 permissions:
   contents: read
 
+# Default for jobs that don't override it:
 # Make sure CI fails on all warnings, including Clippy lints
 env:
   RUSTFLAGS: "-Dwarnings"
@@ -79,6 +84,9 @@ jobs:
             target: x86_64
           - runner: ubuntu-22.04
             target: aarch64
+    # Override the repo's native setting for wheel builds to a portable baseline.
+    env:
+      RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v3"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -104,6 +112,9 @@ jobs:
         platform:
           - runner: windows-latest
             target: x64
+    # Override native to portable baseline on CI for Windows wheels as well.
+    env:
+      RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v3"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -131,6 +142,9 @@ jobs:
             target: x86_64
           - runner: macos-14
             target: aarch64
+    # Same override for macOS wheel builds.
+    env:
+      RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v3"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -190,4 +204,3 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
-
