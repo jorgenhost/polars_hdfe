@@ -18,3 +18,8 @@ statrs = "0.18.0"
 
 [features]
 timing = []
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
