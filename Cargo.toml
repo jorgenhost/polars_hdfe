@@ -13,7 +13,7 @@ pyo3-polars = { version = "0.25.0", features = ["derive", "dtype-struct", "dtype
 serde = { version = "1", features = ["derive"] }
 polars = { version = "0.52.0", default-features = false }
 polars-arrow = { version = "0.52.0", default-features = false }
-faer = "0.23.2"
+faer = "0.24.0"
 statrs = "0.18.0"
 
 [features]
