@@ -290,8 +290,19 @@ pub fn build_xy_data(
 
 fn compute_xtx_xty(x: &Mat<f64>, y: &Mat<f64>) -> (Mat<f64>, Mat<f64>) {
     let xt = x.transpose();
+    
+    #[cfg(feature = "timing")]
+    let t_xtx = Instant::now();
     let xtx = &xt * x;
+    #[cfg(feature = "timing")]
+    log_timing("    xt * x", t_xtx.elapsed());
+
+    #[cfg(feature = "timing")]
+    let t_xty = Instant::now();
     let xty = &xt * y;
+    #[cfg(feature = "timing")]
+    log_timing("    xt * y", t_xty.elapsed());
+
     (xtx, xty)
 }
 
