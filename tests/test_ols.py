@@ -1,5 +1,9 @@
 import os
 from pathlib import Path
+os.environ['POLARS_MAX_THREADS'] = '2'
+# Remember to implement a parallel=True strat rust-side to allow for massive parallelization 
+if "RAYON_NUM_THREADS" not in os.environ:
+    os.environ["RAYON_NUM_THREADS"] = "1"
 import polars as pl
 import polars.selectors as cs
 import polars_hdfe
