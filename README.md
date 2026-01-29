@@ -2,27 +2,36 @@
 
 ## Development
 
-Create the environment with dev dependencies:
+Create the environment and install dependencies (skipping the package build):
 
 ```bash
-uv sync --dev
+uv sync --dev --no-install-project
+
+# windows
+.venv\Scripts\activate
+
+# linux/mac
+source .venv/bin/activate
+
 ```
 
-Build and install the extension (when you change any rust code) in the environment:
-
 ```bash
-maturin develop --release --uv
+maturin develop --release 
 
 # include timings
-
-maturin develop --release --uv --features timing
+maturin develop --release --features timing -v
 ```
 
 Run tests:
 
 ```bash
 # create datasets
-uv run tests/_gen_data.py
+python tests/_gen_data.py
 
-uv run tests/test_ols.py
+# run tests
+python tests/test_ols.py
+
+## can also do
+uv run --no-sync tests/_gen_data.py
+uv run --no-sync tests/test_ols.py
 ```

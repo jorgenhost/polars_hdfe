@@ -1,29 +1,28 @@
 SHELL=/bin/bash
 
-venv:
-	python3 -m venv .venv
-	.venv/bin/pip install -r requirements.txt
+.PHONY: setup install install-release pre-commit test run run-release
+
+# Replaces 'venv' - creates env and installs dependencies from pyproject.toml
+setup:
+	uv sync
 
 install:
-	unset CONDA_PREFIX && \
-	source .venv/bin/activate && maturin develop
+	uv run maturin develop
 
 install-release:
-	unset CONDA_PREFIX && \
-	source .venv/bin/activate && maturin develop --release
+	uv run maturin develop --release
 
 pre-commit:
 	cargo +nightly fmt --all && cargo clippy --all-features
-	.venv/bin/python -m ruff check . --fix --exit-non-zero-on-fix
-	.venv/bin/python -m ruff format polars_hdfe tests
-	.venv/bin/mypy polars_hdfe tests
-
+	uv run ruff check . --fix --exit-non-zero-on-fix
+	uv run ruff format polars_hdfe tests
+	uv run mypy polars_hdfe tests
 test:
-	.venv/bin/python -m pytest tests
+	uv run pytest tests
 
 run: install
-	source .venv/bin/activate && python run.py
+	uv run python run.py
 
 run-release: install-release
-	source .venv/bin/activate && python run.py
+	uv run python run.py
 
